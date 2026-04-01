@@ -131,6 +131,71 @@ export function outlineComponent(uid: number, name: string, instance: ComponentI
 }
 
 // ============================================================================
+// IntersectionObserver-based rect collection
+// ============================================================================
+
+interface IntersectionState {
+  resolveNext: ((value: IntersectionObserverEntry[]) => void) | null
+  seenElements: Set<Element>
+  uniqueElements: Set<Element>
+  done: boolean
+}
+
+function onIntersect(
+  this: IntersectionState,
+  entries: IntersectionObserverEntry[],
+  observer: IntersectionObserver,
+): void {
+  const newEntries: IntersectionObserverEntry[] = []
+
+  for (const entry of entries) {
+    const element = entry.target
+    if (!this.seenElements.has(element)) {
+      this.seenElements.add(element)
+      newEntries.push(entry)
+    }
+  }
+
+  if (newEntries.length > 0 && this.resolveNext) {
+    this.resolveNext(newEntries)
+    this.resolveNext = null
+  }
+
+  if (this.seenElements.size === this.uniqueElements.size) {
+    observer.disconnect()
+    this.done = true
+    if (this.resolveNext) {
+      this.resolveNext([])
+    }
+  }
+}
+
+async function* getBatchedRectMap(
+  elements: Element[],
+): AsyncGenerator<IntersectionObserverEntry[], void, unknown> {
+  const state: IntersectionState = {
+    uniqueElements: new Set(elements),
+    seenElements: new Set(),
+    resolveNext: null,
+    done: false,
+  }
+  const observer = new IntersectionObserver(onIntersect.bind(state))
+
+  for (const element of state.uniqueElements) {
+    observer.observe(element)
+  }
+
+  while (!state.done) {
+    const entries = await new Promise<IntersectionObserverEntry[]>((resolve) => {
+      state.resolveNext = resolve
+    })
+    if (entries.length > 0) {
+      yield entries
+    }
+  }
+}
+
+// ============================================================================
 // Flush and draw
 // ============================================================================
 
@@ -138,87 +203,100 @@ const SupportedArrayBuffer =
   typeof SharedArrayBuffer !== 'undefined' ? SharedArrayBuffer : ArrayBuffer
 
 /**
- * Flush all queued blueprints to the canvas
+ * Flush all queued blueprints to the canvas.
+ * Uses IntersectionObserver to get visible rects asynchronously — no layout
+ * thrashing, and off-screen elements are skipped automatically.
  */
 async function flushOutlines(): Promise<void> {
   if (blueprintIds.size === 0) return
 
-  const blueprints: BlueprintOutline[] = []
-  const blueprintRects: DOMRect[] = []
-  const ids: number[] = []
-
+  // Collect all elements across blueprints for the IO batch
+  const elements: Element[] = []
   for (const uid of blueprintIds) {
     const blueprint = blueprintMap.get(uid)
     if (!blueprint) continue
-
-    // Get bounding rects for all elements
-    const rects: DOMRect[] = []
     for (const element of blueprint.elements) {
-      const rect = element.getBoundingClientRect()
-      if (rect.width > 0 && rect.height > 0) {
-        rects.push(rect)
+      elements.push(element)
+    }
+  }
+
+  const rectsMap = new Map<Element, DOMRect>()
+
+  for await (const entries of getBatchedRectMap(elements)) {
+    // entry.intersectionRect is the clipped visible rect — no layout trigger
+    for (const entry of entries) {
+      const rect = entry.intersectionRect
+      if (entry.isIntersecting && rect.width && rect.height) {
+        rectsMap.set(entry.target, rect)
       }
     }
 
-    if (rects.length === 0) continue
+    // Process blueprints with whatever rects we have so far
+    const blueprints: BlueprintOutline[] = []
+    const blueprintRects: DOMRect[] = []
+    const ids: number[] = []
 
-    blueprints.push(blueprint)
-    blueprintRects.push(mergeRects(rects))
-    ids.push(uid)
-  }
+    for (const uid of blueprintIds) {
+      const blueprint = blueprintMap.get(uid)
+      if (!blueprint) continue
 
-  if (blueprints.length === 0) {
-    blueprintIds.clear()
-    blueprintMap.clear()
-    return
-  }
+      const rects: DOMRect[] = []
+      for (const element of blueprint.elements) {
+        const rect = rectsMap.get(element)
+        if (rect) rects.push(rect)
+      }
 
-  if (worker) {
-    // Send to worker via SharedArrayBuffer
-    const arrayBuffer = new SupportedArrayBuffer(
-      blueprints.length * OUTLINE_ARRAY_SIZE * 4
-    )
-    const sharedView = new Float32Array(arrayBuffer)
-    const blueprintNames = new Array(blueprints.length)
+      if (rects.length === 0) continue
 
-    for (let i = 0; i < blueprints.length; i++) {
-      const blueprint = blueprints[i]
-      const { x, y, width, height } = blueprintRects[i]
-      const scaledIndex = i * OUTLINE_ARRAY_SIZE
-
-      sharedView[scaledIndex] = ids[i]
-      sharedView[scaledIndex + 1] = blueprint.count
-      sharedView[scaledIndex + 2] = x
-      sharedView[scaledIndex + 3] = y
-      sharedView[scaledIndex + 4] = width
-      sharedView[scaledIndex + 5] = height
-      blueprintNames[i] = blueprint.name
+      blueprints.push(blueprint)
+      blueprintRects.push(mergeRects(rects))
+      ids.push(uid)
     }
 
-    worker.postMessage({
-      type: 'draw-outlines',
-      data: arrayBuffer,
-      names: blueprintNames,
-    })
-  } else if (canvas && ctx) {
-    // Draw on main thread
-    const outlineData: OutlineData[] = blueprints.map((blueprint, i) => ({
-      id: ids[i],
-      name: blueprint.name,
-      count: blueprint.count,
-      x: blueprintRects[i].x,
-      y: blueprintRects[i].y,
-      width: blueprintRects[i].width,
-      height: blueprintRects[i].height,
-    }))
+    if (blueprints.length > 0) {
+      const arrayBuffer = new SupportedArrayBuffer(
+        blueprints.length * OUTLINE_ARRAY_SIZE * 4
+      )
+      const sharedView = new Float32Array(arrayBuffer)
+      const blueprintNames = new Array(blueprints.length)
+      let outlineData: OutlineData[] | undefined
 
-    updateOutlines(activeOutlines, outlineData)
-    if (!animationFrameId) {
-      animationFrameId = requestAnimationFrame(draw)
+      for (let i = 0, len = blueprints.length; i < len; i++) {
+        const blueprint = blueprints[i]
+        const id = ids[i]
+        const { x, y, width, height } = blueprintRects[i]
+        const { count, name } = blueprint
+
+        if (worker) {
+          const scaledIndex = i * OUTLINE_ARRAY_SIZE
+          sharedView[scaledIndex] = id
+          sharedView[scaledIndex + 1] = count
+          sharedView[scaledIndex + 2] = x
+          sharedView[scaledIndex + 3] = y
+          sharedView[scaledIndex + 4] = width
+          sharedView[scaledIndex + 5] = height
+          blueprintNames[i] = name
+        } else {
+          outlineData ||= new Array(blueprints.length)
+          outlineData[i] = { id, name, count, x, y, width, height }
+        }
+      }
+
+      if (worker) {
+        worker.postMessage({
+          type: 'draw-outlines',
+          data: arrayBuffer,
+          names: blueprintNames,
+        })
+      } else if (canvas && ctx && outlineData) {
+        updateOutlines(activeOutlines, outlineData)
+        if (!animationFrameId) {
+          animationFrameId = requestAnimationFrame(draw)
+        }
+      }
     }
   }
 
-  // Clear blueprints
   blueprintIds.clear()
   blueprintMap.clear()
 }
