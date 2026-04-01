@@ -21,10 +21,7 @@ export {
 
 import { createInstrumentation, isDevToolsAvailable, type PerfType } from './instrumentation'
 import { initOverlay, outlineComponent } from './overlay'
-import { getFPS } from './fps'
-
-// TEMPORARY: log FPS to console
-setInterval(() => console.log(`[vue-toolkit] FPS: ${getFPS()}`), 1000)
+import { createToolbar } from './toolbar'
 
 export const VERSION = '0.0.1'
 
@@ -90,25 +87,26 @@ export function clearPerfData(): void {
  * createApp(App).mount('#app')
  * ```
  */
-export function startTracking(options: { overlay?: boolean } = {}) {
-  const { overlay = true } = options
-  
+export function startTracking(options: { overlay?: boolean; logToConsole?: boolean } = {}) {
+  const { overlay = true, logToConsole = false } = options
+
   if (!isDevToolsAvailable()) {
     console.warn('[vue-toolkit] Not in a browser environment.')
     return null
   }
 
-  console.log('[vue-toolkit] Starting component tracking...')
+  if (logToConsole) console.log('[vue-toolkit] Starting component tracking...')
 
   // Initialize overlay if enabled
   if (overlay) {
     initOverlay()
+    createToolbar()
   }
 
   const instrumentation = createInstrumentation({
     onComponentAdd({ instance, uid }) {
       const name = getComponentName(instance)
-      console.log(`[vue-toolkit] + MOUNT: ${name} (uid: ${uid})`)
+      if (logToConsole) console.log(`[vue-toolkit] + MOUNT: ${name} (uid: ${uid})`)
       
       // Add outline for mount
       if (overlay) {
@@ -118,7 +116,7 @@ export function startTracking(options: { overlay?: boolean } = {}) {
 
     onComponentUpdate({ instance, uid }) {
       const name = getComponentName(instance)
-      console.log(`[vue-toolkit] ↻ UPDATE: ${name} (uid: ${uid})`)
+      if (logToConsole) console.log(`[vue-toolkit] ↻ UPDATE: ${name} (uid: ${uid})`)
       
       // Add outline for update
       if (overlay) {
@@ -128,7 +126,7 @@ export function startTracking(options: { overlay?: boolean } = {}) {
 
     onComponentRemove({ instance, uid }) {
       const name = getComponentName(instance)
-      console.log(`[vue-toolkit] - UNMOUNT: ${name} (uid: ${uid})`)
+      if (logToConsole) console.log(`[vue-toolkit] - UNMOUNT: ${name} (uid: ${uid})`)
       // Clean up perf data for unmounted components
       componentPerfData.delete(uid)
     },
@@ -191,11 +189,11 @@ export function startTracking(options: { overlay?: boolean } = {}) {
       
       // Log with appropriate formatting
       const durationStr = duration.toFixed(2)
-      console.log(`[vue-toolkit] ⏱ PERF ${type}: ${name} (uid: ${uid}) - ${durationStr}ms`)
+      if (logToConsole) console.log(`[vue-toolkit] ⏱ PERF ${type}: ${name} (uid: ${uid}) - ${durationStr}ms`)
     },
   })
 
-  console.log('[vue-toolkit] Tracking active. Waiting for Vue app to mount...')
+  if (logToConsole) console.log('[vue-toolkit] Tracking active. Waiting for Vue app to mount...')
 
   return instrumentation
 }

@@ -6,6 +6,7 @@
 import type { ComponentInternalInstance } from 'vue'
 import { OUTLINE_ARRAY_SIZE, drawCanvas, initCanvas, updateOutlines, updateScroll } from './canvas'
 import type { ActiveOutline, BlueprintOutline, OutlineData } from './types'
+import { isPaused } from '../toolbar/state'
 
 // Worker will be loaded via Vite's worker import
 import OverlayWorker from './worker?worker&inline'
@@ -112,7 +113,7 @@ function mergeRects(rects: DOMRect[]): DOMRect {
  * Add a component to the blueprint queue for the next flush
  */
 export function outlineComponent(uid: number, name: string, instance: ComponentInternalInstance): void {
-  if (!isInitialized) return
+  if (!isInitialized || isPaused.value) return
   
   const elements = getComponentElements(instance)
   if (elements.length === 0) return

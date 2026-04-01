@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@source "../**/*.tsx";
+
+@theme {
+  --color-vue-green: #4db88a;
+}
