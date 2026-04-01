@@ -21,6 +21,10 @@ export {
 
 import { createInstrumentation, isDevToolsAvailable, type PerfType } from './instrumentation'
 import { initOverlay, outlineComponent } from './overlay'
+import { getFPS } from './fps'
+
+// TEMPORARY: log FPS to console
+setInterval(() => console.log(`[vue-toolkit] FPS: ${getFPS()}`), 1000)
 
 export const VERSION = '0.0.1'
 

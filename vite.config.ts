@@ -10,19 +10,19 @@ export default defineConfig({
     __VUE_PROD_DEVTOOLS__: true,
   },
 
-  // build: {
-  //   lib: {
-  //     entry: resolve(import.meta.dirname, "src/main.ts"),
-  //     name: "vue-toolkit",
-  //     fileName: "vue-toolkit",
-  //   },
-  //   rolldownOptions: {
-  //     external: ["vue"],
-  //     output: {
-  //       globals: {
-  //         vue: "Vue",
-  //       },
-  //     },
-  //   },
-  // },
+  build: {
+    lib: {
+      entry: resolve(import.meta.dirname, "src/main.ts"),
+      name: "vue-toolkit",
+      fileName: "vue-toolkit",
+    },
+    rolldownOptions: {
+      external: ["vue"],
+      output: {
+        globals: {
+          vue: "Vue",
+        },
+      },
+    },
+  },
 });
