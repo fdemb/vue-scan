@@ -1,0 +1,42 @@
+{
+  "name": "vue-toolkit",
+  "version": "0.0.1",
+  "description": "Performance tracking toolkit for Vue",
+  "type": "module",
+  "main": "./dist/vue-toolkit.umd.cjs",
+  "module": "./dist/vue-toolkit.js",
+  "types": "./dist/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/vue-toolkit.js",
+      "require": "./dist/vue-toolkit.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "build:watch": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "vue",
+    "performance",
+    "devtools"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitejs/plugin-vue": "^6.0.5",
+    "typescript": "^5.8.3",
+    "vite": "^8.0.3",
+    "vue": "^3.5.17"
+  }
+}

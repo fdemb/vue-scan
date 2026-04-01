@@ -1,0 +1,5 @@
+references
+node_modules
+.DS_Store
+dist
+BOARD.md
