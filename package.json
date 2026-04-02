@@ -1,6 +1,6 @@
 {
   "name": "@fdemb1/vue-scan",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Performance tracking toolkit for Vue",
   "type": "module",
   "main": "./dist/vue-scan.cjs",
