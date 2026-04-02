@@ -1,8 +1,3 @@
-/**
- * OffscreenCanvas Web Worker for high-performance outline rendering
- * Receives draw commands from main thread and renders outlines on a separate thread
- */
-
 import { OUTLINE_ARRAY_SIZE, drawCanvas, initCanvas } from './canvas'
 import type { ActiveOutline } from './types'
 

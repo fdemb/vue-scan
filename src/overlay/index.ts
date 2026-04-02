@@ -1,19 +1,9 @@
-/**
- * Overlay system for visualizing Vue component updates
- * Creates a canvas overlay and draws outlines around components when they update
- */
-
 import type { ComponentInternalInstance } from 'vue'
 import { OUTLINE_ARRAY_SIZE, drawCanvas, initCanvas, updateOutlines, updateScroll } from './canvas'
 import type { ActiveOutline, BlueprintOutline, OutlineData } from './types'
 import { isPaused } from '../toolbar/state'
 
-// Worker will be loaded via Vite's worker import
 import OverlayWorker from './worker?worker&inline'
-
-// ============================================================================
-// State
-// ============================================================================
 
 let worker: Worker | null = null
 let canvas: HTMLCanvasElement | null = null
@@ -27,31 +17,19 @@ const activeOutlines = new Map<string, ActiveOutline>()
 const blueprintMap = new Map<number, BlueprintOutline>()
 const blueprintIds = new Set<number>()
 
-// ============================================================================
-// DOM Element extraction from Vue component instances
-// ============================================================================
-
-/**
- * Get DOM elements for a Vue component instance
- * Vue components can render multiple root elements (fragments)
- */
 function getComponentElements(instance: ComponentInternalInstance): Element[] {
   const elements: Element[] = []
   
-  // instance.vnode.el is the root DOM element (or first element for fragments)
-  // For fragments, we need to traverse instance.subTree
   const el = instance.vnode?.el
   
   if (el instanceof Element) {
     elements.push(el)
   } else if (el instanceof Text) {
-    // Text node - get parent element
     if (el.parentElement) {
       elements.push(el.parentElement)
     }
   }
   
-  // Handle fragments - walk the subTree to find all root elements
   if (instance.subTree) {
     collectElements(instance.subTree, elements)
   }
@@ -59,9 +37,6 @@ function getComponentElements(instance: ComponentInternalInstance): Element[] {
   return elements
 }
 
-/**
- * Recursively collect Element nodes from a VNode tree
- */
 function collectElements(vnode: any, elements: Element[]): void {
   if (!vnode) return
   
@@ -69,7 +44,6 @@ function collectElements(vnode: any, elements: Element[]): void {
     elements.push(vnode.el)
   }
   
-  // Fragment children
   if (Array.isArray(vnode.children)) {
     for (const child of vnode.children) {
       if (child && typeof child === 'object') {
@@ -79,9 +53,6 @@ function collectElements(vnode: any, elements: Element[]): void {
   }
 }
 
-/**
- * Merge multiple DOMRects into one bounding rect
- */
 function mergeRects(rects: DOMRect[]): DOMRect {
   if (rects.length === 0) {
     return new DOMRect(0, 0, 0, 0)
@@ -105,13 +76,6 @@ function mergeRects(rects: DOMRect[]): DOMRect {
   return new DOMRect(minX, minY, maxX - minX, maxY - minY)
 }
 
-// ============================================================================
-// Blueprint management
-// ============================================================================
-
-/**
- * Add a component to the blueprint queue for the next flush
- */
 export function outlineComponent(uid: number, name: string, instance: ComponentInternalInstance): void {
   if (!isInitialized || isPaused.value) return
   
@@ -196,22 +160,12 @@ async function* getBatchedRectMap(
   }
 }
 
-// ============================================================================
-// Flush and draw
-// ============================================================================
-
 const SupportedArrayBuffer =
   typeof SharedArrayBuffer !== 'undefined' ? SharedArrayBuffer : ArrayBuffer
 
-/**
- * Flush all queued blueprints to the canvas.
- * Uses IntersectionObserver to get visible rects asynchronously — no layout
- * thrashing, and off-screen elements are skipped automatically.
- */
 async function flushOutlines(): Promise<void> {
   if (blueprintIds.size === 0) return
 
-  // Collect all elements across blueprints for the IO batch
   const elements: Element[] = []
   for (const uid of blueprintIds) {
     const blueprint = blueprintMap.get(uid)
@@ -224,7 +178,6 @@ async function flushOutlines(): Promise<void> {
   const rectsMap = new Map<Element, DOMRect>()
 
   for await (const entries of getBatchedRectMap(elements)) {
-    // entry.intersectionRect is the clipped visible rect — no layout trigger
     for (const entry of entries) {
       const rect = entry.intersectionRect
       if (entry.isIntersecting && rect.width && rect.height) {
@@ -232,7 +185,6 @@ async function flushOutlines(): Promise<void> {
       }
     }
 
-    // Process blueprints with whatever rects we have so far
     const blueprints: BlueprintOutline[] = []
     const blueprintRects: DOMRect[] = []
     const ids: number[] = []
@@ -302,9 +254,6 @@ async function flushOutlines(): Promise<void> {
   blueprintMap.clear()
 }
 
-/**
- * Main thread draw loop (fallback when worker not available)
- */
 function draw(): void {
   if (!ctx || !canvas) return
 
@@ -317,10 +266,6 @@ function draw(): void {
   }
 }
 
-// ============================================================================
-// Setup and cleanup
-// ============================================================================
-
 const IS_OFFSCREEN_CANVAS_WORKER_SUPPORTED =
   typeof OffscreenCanvas !== 'undefined' && typeof Worker !== 'undefined'
 
@@ -328,21 +273,16 @@ function getDpr(): number {
   return Math.min(window.devicePixelRatio || 1, 2)
 }
 
-/**
- * Initialize the overlay canvas
- */
 export function initOverlay(): HTMLElement | null {
   if (typeof window === 'undefined') return null
   if (isInitialized) return null
 
   cleanup()
 
-  // Create host element with shadow DOM for isolation
   const host = document.createElement('div')
   host.setAttribute('data-vue-scan', 'true')
   const shadowRoot = host.attachShadow({ mode: 'open' })
 
-  // Create canvas
   const canvasEl = document.createElement('canvas')
   canvasEl.style.position = 'fixed'
   canvasEl.style.top = '0'
@@ -361,7 +301,6 @@ export function initOverlay(): HTMLElement | null {
   canvasEl.width = innerWidth * dpr
   canvasEl.height = innerHeight * dpr
 
-  // Try to use OffscreenCanvas worker
   if (IS_OFFSCREEN_CANVAS_WORKER_SUPPORTED) {
     try {
       worker = new OverlayWorker()
@@ -383,12 +322,10 @@ export function initOverlay(): HTMLElement | null {
     }
   }
 
-  // Fallback to main thread canvas
   if (!worker) {
     ctx = initCanvas(canvasEl, dpr) as CanvasRenderingContext2D
   }
 
-  // Handle resize
   let isResizeScheduled = false
   window.addEventListener('resize', () => {
     if (isResizeScheduled) return
@@ -416,7 +353,6 @@ export function initOverlay(): HTMLElement | null {
     }, 32)
   })
 
-  // Handle scroll
   let prevScrollX = window.scrollX
   let prevScrollY = window.scrollY
   let isScrollScheduled = false
@@ -441,7 +377,6 @@ export function initOverlay(): HTMLElement | null {
     }, 32)
   })
 
-  // Flush blueprints periodically (~30fps)
   flushIntervalId = window.setInterval(() => {
     if (blueprintIds.size > 0) {
       requestAnimationFrame(() => flushOutlines())
@@ -454,9 +389,6 @@ export function initOverlay(): HTMLElement | null {
   return host
 }
 
-/**
- * Clean up the overlay
- */
 export function cleanup(): void {
   const host = document.querySelector('[data-vue-scan]')
   if (host) {
@@ -486,9 +418,6 @@ export function cleanup(): void {
   blueprintIds.clear()
 }
 
-/**
- * Check if overlay is initialized
- */
 export function isOverlayActive(): boolean {
   return isInitialized
 }

@@ -1,41 +1,27 @@
-/**
- * Canvas drawing logic for component outlines
- * Works with both HTMLCanvasElement (main thread) and OffscreenCanvas (worker)
- */
-
 import type { ActiveOutline, OutlineData } from './types'
 
-// Constants
-export const OUTLINE_ARRAY_SIZE = 6 // [id, count, x, y, width, height]
-const TOTAL_FRAMES = 45 // ~750ms at 60fps
+export const OUTLINE_ARRAY_SIZE = 6
+const TOTAL_FRAMES = 45
 const INTERPOLATION_SPEED = 0.2
 const SNAP_THRESHOLD = 0.5
 const MAX_LABEL_LENGTH = 40
 const MAX_PARTS_LENGTH = 4
 
-const PRIMARY_COLOR = '52,152,108' // #34986C - darker Vue green
+const PRIMARY_COLOR = '52,152,108'
 const MONO_FONT = 'Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace'
 
-/**
- * Linear interpolation with snap threshold
- */
 function lerp(start: number, end: number): number {
   const delta = end - start
   if (Math.abs(delta) < SNAP_THRESHOLD) return end
   return start + delta * INTERPOLATION_SPEED
 }
 
-/**
- * Get label text for a group of outlines at the same position
- */
 function getLabelText(outlines: ActiveOutline[]): string {
-  // Group by name and sum counts
   const nameByCount = new Map<string, number>()
   for (const { name, count } of outlines) {
     nameByCount.set(name, (nameByCount.get(name) || 0) + count)
   }
 
-  // Invert to group names by count
   const countByNames = new Map<number, string[]>()
   for (const [name, count] of nameByCount) {
     const names = countByNames.get(count)
@@ -46,7 +32,6 @@ function getLabelText(outlines: ActiveOutline[]): string {
     }
   }
 
-  // Sort by count descending and build label
   const sortedEntries = [...countByNames.entries()].sort((a, b) => b[0] - a[0])
   
   let labelText = ''
@@ -67,9 +52,6 @@ function getLabelText(outlines: ActiveOutline[]): string {
   return labelText
 }
 
-/**
- * Calculate total area of outlines (for sorting)
- */
 function getAreaFromOutlines(outlines: ActiveOutline[]): number {
   let area = 0
   for (const outline of outlines) {
@@ -78,9 +60,6 @@ function getAreaFromOutlines(outlines: ActiveOutline[]): number {
   return area
 }
 
-/**
- * Initialize canvas context with device pixel ratio scaling
- */
 export function initCanvas(
   canvas: HTMLCanvasElement | OffscreenCanvas,
   dpr: number
@@ -95,9 +74,6 @@ export function initCanvas(
   return ctx
 }
 
-/**
- * Update or add outlines to the active set
- */
 export function updateOutlines(
   activeOutlines: Map<string, ActiveOutline>,
   outlines: OutlineData[]
@@ -107,7 +83,6 @@ export function updateOutlines(
     const existingOutline = activeOutlines.get(key)
 
     if (existingOutline) {
-      // Re-render: restart animation, update target position
       existingOutline.count++
       existingOutline.frame = 0
       existingOutline.targetX = x
@@ -115,7 +90,6 @@ export function updateOutlines(
       existingOutline.targetWidth = width
       existingOutline.targetHeight = height
     } else {
-      // New outline
       activeOutlines.set(key, {
         id,
         name,
@@ -134,9 +108,6 @@ export function updateOutlines(
   }
 }
 
-/**
- * Update outline positions on scroll
- */
 export function updateScroll(
   activeOutlines: Map<string, ActiveOutline>,
   deltaX: number,
@@ -148,10 +119,6 @@ export function updateScroll(
   }
 }
 
-/**
- * Draw all active outlines and animate them
- * Returns true if there are still outlines to animate
- */
 export function drawCanvas(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   canvas: HTMLCanvasElement | OffscreenCanvas,
@@ -160,14 +127,12 @@ export function drawCanvas(
 ): boolean {
   ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr)
 
-  // Group outlines by position for label merging
   const groupedOutlinesMap = new Map<string, ActiveOutline[]>()
   const rectMap = new Map<string, { x: number; y: number; width: number; height: number; alpha: number }>()
 
   for (const outline of activeOutlines.values()) {
     const { x, y, width, height, targetX, targetY, targetWidth, targetHeight, frame } = outline
 
-    // Animate position
     if (targetX !== x) outline.x = lerp(x, targetX)
     if (targetY !== y) outline.y = lerp(y, targetY)
     if (targetWidth !== width) outline.width = lerp(width, targetWidth)
@@ -176,7 +141,6 @@ export function drawCanvas(
     const labelKey = `${targetX ?? x},${targetY ?? y}`
     const rectKey = `${labelKey},${targetWidth ?? width},${targetHeight ?? height}`
 
-    // Group for labels
     const outlines = groupedOutlinesMap.get(labelKey)
     if (outlines) {
       outlines.push(outline)
@@ -184,11 +148,9 @@ export function drawCanvas(
       groupedOutlinesMap.set(labelKey, [outline])
     }
 
-    // Calculate alpha (fade out over TOTAL_FRAMES)
     const alpha = 1 - frame / TOTAL_FRAMES
     outline.frame++
 
-    // Track rect with highest alpha
     const rect = rectMap.get(rectKey) || { x, y, width, height, alpha }
     if (alpha > rect.alpha) {
       rect.alpha = alpha
@@ -196,12 +158,10 @@ export function drawCanvas(
     rectMap.set(rectKey, rect)
   }
 
-  // Draw rectangles
   for (const { x, y, width, height, alpha } of rectMap.values()) {
     ctx.strokeStyle = `rgba(${PRIMARY_COLOR},${alpha})`
     ctx.lineWidth = 1
 
-    // Offset by 0.5px for crisp 1px strokes on pixel boundaries
     const rx = Math.round(x) + 0.5
     const ry = Math.round(y) + 0.5
     const rw = Math.round(width)
@@ -214,7 +174,6 @@ export function drawCanvas(
     ctx.fill()
   }
 
-  // Build label map
   ctx.font = `11px ${MONO_FONT}`
   const labelMap = new Map<string, {
     text: string
@@ -244,7 +203,6 @@ export function drawCanvas(
       outlines,
     })
 
-    // Remove expired outlines
     if (frame > TOTAL_FRAMES) {
       for (const outline of outlines) {
         activeOutlines.delete(String(outline.id))
@@ -252,7 +210,6 @@ export function drawCanvas(
     }
   }
 
-  // Sort labels by area (larger first) and merge overlapping
   const sortedLabels = Array.from(labelMap.entries()).sort(
     ([, a], [, b]) => getAreaFromOutlines(b.outlines) - getAreaFromOutlines(a.outlines)
   )
@@ -266,7 +223,6 @@ export function drawCanvas(
       const { x, y, width, height } = label
       const { x: otherX, y: otherY, width: otherWidth, height: otherHeight } = otherLabel
 
-      // Check overlap
       if (
         x + width > otherX &&
         otherX + otherWidth > x &&
@@ -280,7 +236,6 @@ export function drawCanvas(
     }
   }
 
-  // Draw labels
   for (const label of labelMap.values()) {
     const { x, y, alpha, width, height, text } = label
 
