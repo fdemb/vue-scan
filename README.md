@@ -21,6 +21,12 @@ That's it. Open your app and the overlay + toolbar will appear automatically.
 npm install @fdemb1/vue-scan
 ```
 
+Or drop in a script tag — no install needed:
+
+```html
+<script src="//unpkg.com/@fdemb1/vue-scan/dist/auto.global.js"></script>
+```
+
 > **Note:** Vue 3 is required as a peer dependency. For production builds, set `__VUE_PROD_DEVTOOLS__` to `true` in your bundler config.
 
 ### Vite

@@ -1,6 +1,6 @@
 {
   "name": "@fdemb1/vue-scan",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Performance tracking toolkit for Vue",
   "type": "module",
   "main": "./dist/vue-scan.cjs",
@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsc --emitDeclarationOnly",
+    "build": "vite build && BUILD_TARGET=auto vite build && tsc --emitDeclarationOnly",
     "build:watch": "vite build --watch",
     "typecheck": "tsc --noEmit"
   },
