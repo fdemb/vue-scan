@@ -3,17 +3,19 @@
   "version": "0.0.1",
   "description": "Performance tracking toolkit for Vue",
   "type": "module",
-  "main": "./dist/vue-scan.umd.cjs",
+  "main": "./dist/vue-scan.cjs",
   "module": "./dist/vue-scan.js",
   "types": "./dist/main.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/main.d.ts",
       "import": "./dist/vue-scan.js",
-      "require": "./dist/vue-scan.umd.cjs"
+      "require": "./dist/vue-scan.cjs"
     },
     "./auto": {
+      "types": "./dist/auto.d.ts",
       "import": "./dist/auto.js",
-      "require": "./dist/auto.umd.cjs"
+      "require": "./dist/auto.cjs"
     }
   },
   "files": [
@@ -30,8 +32,12 @@
     "performance",
     "devtools"
   ],
-  "author": "",
+  "author": "Filip Dembicki",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fdemb/vue-scan"
+  },
   "packageManager": "pnpm@10.33.0",
   "peerDependencies": {
     "vue": "^3.0.0"
