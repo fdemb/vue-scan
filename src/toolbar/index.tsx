@@ -10,7 +10,7 @@ function initRootContainer(): ShadowRoot {
   if (rootContainer && shadowRoot) return shadowRoot;
 
   rootContainer = document.createElement("div");
-  rootContainer.id = "vue-toolkit-root";
+  rootContainer.id = "vue-scan-root";
 
   shadowRoot = rootContainer.attachShadow({ mode: "open" });
 
@@ -43,7 +43,7 @@ class ToolbarErrorBoundary extends Component<{ children: ComponentChildren }, Er
     if (this.state.hasError) {
       return (
         <div class="fixed bottom-4 right-4 z-[2147483647] bg-[#1a1a1a] text-red-400 p-3 rounded-lg font-mono text-xs max-w-[280px] shadow-lg border border-white/10">
-          <div>vue-toolkit error</div>
+          <div>vue-scan error</div>
           <div class="mt-1 break-words">{this.state.error?.message}</div>
           <button
             onClick={this.handleReset}
@@ -62,7 +62,7 @@ export function createToolbar(): HTMLDivElement {
   const shadow = initRootContainer();
 
   const container = document.createElement("div");
-  container.id = "vue-toolkit-toolbar-root";
+  container.id = "vue-scan-toolbar-root";
   shadow.appendChild(container);
 
   render(

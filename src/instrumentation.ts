@@ -82,7 +82,7 @@ declare global {
  */
 function createDevToolsHook(): DevToolsHook {
   return {
-    id: 'vue-toolkit',
+    id: 'vue-scan',
     enabled: true,
     appRecords: [],
     apps: {},
@@ -165,7 +165,7 @@ export function isDevToolsAvailable(): boolean {
  * 
  * @example
  * ```ts
- * import { createInstrumentation } from 'vue-toolkit'
+ * import { createInstrumentation } from 'vue-scan'
  * import { createApp } from 'vue'
  * 
  * // Set up instrumentation first
@@ -189,7 +189,7 @@ export function createInstrumentation(
 
   if (!hook) {
     console.warn(
-      '[vue-toolkit] Not in a browser environment. Instrumentation disabled.'
+      '[vue-scan] Not in a browser environment. Instrumentation disabled.'
     )
     return {
       isActive: false,

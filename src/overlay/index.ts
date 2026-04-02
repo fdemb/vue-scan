@@ -339,7 +339,7 @@ export function initOverlay(): HTMLElement | null {
 
   // Create host element with shadow DOM for isolation
   const host = document.createElement('div')
-  host.setAttribute('data-vue-toolkit', 'true')
+  host.setAttribute('data-vue-scan', 'true')
   const shadowRoot = host.attachShadow({ mode: 'open' })
 
   // Create canvas
@@ -378,7 +378,7 @@ export function initOverlay(): HTMLElement | null {
         [offscreenCanvas]
       )
     } catch (e) {
-      console.warn('[vue-toolkit] Failed to initialize OffscreenCanvas worker:', e)
+      console.warn('[vue-scan] Failed to initialize OffscreenCanvas worker:', e)
       worker = null
     }
   }
@@ -458,7 +458,7 @@ export function initOverlay(): HTMLElement | null {
  * Clean up the overlay
  */
 export function cleanup(): void {
-  const host = document.querySelector('[data-vue-toolkit]')
+  const host = document.querySelector('[data-vue-scan]')
   if (host) {
     host.remove()
   }

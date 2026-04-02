@@ -13,9 +13,11 @@ export default defineConfig({
 
   build: {
     lib: {
-      entry: resolve(import.meta.dirname, "src/main.ts"),
-      name: "vue-toolkit",
-      fileName: "vue-toolkit",
+      entry: {
+        "vue-scan": resolve(import.meta.dirname, "src/main.ts"),
+        "auto": resolve(import.meta.dirname, "src/auto.ts"),
+      },
+      name: "vue-scan",
     },
     rolldownOptions: {
       external: ["vue"],

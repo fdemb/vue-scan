@@ -80,7 +80,7 @@ export function clearPerfData(): void {
  * 
  * @example
  * ```ts
- * import { startTracking } from 'vue-toolkit'
+ * import { startTracking } from 'vue-scan'
  * import { createApp } from 'vue'
  * 
  * startTracking()  // Must be called first!
@@ -91,11 +91,11 @@ export function startTracking(options: { overlay?: boolean; logToConsole?: boole
   const { overlay = true, logToConsole = false } = options
 
   if (!isDevToolsAvailable()) {
-    console.warn('[vue-toolkit] Not in a browser environment.')
+    console.warn('[vue-scan] Not in a browser environment.')
     return null
   }
 
-  if (logToConsole) console.log('[vue-toolkit] Starting component tracking...')
+  if (logToConsole) console.log('[vue-scan] Starting component tracking...')
 
   // Initialize overlay if enabled
   if (overlay) {
@@ -106,7 +106,7 @@ export function startTracking(options: { overlay?: boolean; logToConsole?: boole
   const instrumentation = createInstrumentation({
     onComponentAdd({ instance, uid }) {
       const name = getComponentName(instance)
-      if (logToConsole) console.log(`[vue-toolkit] + MOUNT: ${name} (uid: ${uid})`)
+      if (logToConsole) console.log(`[vue-scan] + MOUNT: ${name} (uid: ${uid})`)
       
       // Add outline for mount
       if (overlay) {
@@ -116,7 +116,7 @@ export function startTracking(options: { overlay?: boolean; logToConsole?: boole
 
     onComponentUpdate({ instance, uid }) {
       const name = getComponentName(instance)
-      if (logToConsole) console.log(`[vue-toolkit] ↻ UPDATE: ${name} (uid: ${uid})`)
+      if (logToConsole) console.log(`[vue-scan] ↻ UPDATE: ${name} (uid: ${uid})`)
       
       // Add outline for update
       if (overlay) {
@@ -126,7 +126,7 @@ export function startTracking(options: { overlay?: boolean; logToConsole?: boole
 
     onComponentRemove({ instance, uid }) {
       const name = getComponentName(instance)
-      if (logToConsole) console.log(`[vue-toolkit] - UNMOUNT: ${name} (uid: ${uid})`)
+      if (logToConsole) console.log(`[vue-scan] - UNMOUNT: ${name} (uid: ${uid})`)
       // Clean up perf data for unmounted components
       componentPerfData.delete(uid)
     },
@@ -189,11 +189,11 @@ export function startTracking(options: { overlay?: boolean; logToConsole?: boole
       
       // Log with appropriate formatting
       const durationStr = duration.toFixed(2)
-      if (logToConsole) console.log(`[vue-toolkit] ⏱ PERF ${type}: ${name} (uid: ${uid}) - ${durationStr}ms`)
+      if (logToConsole) console.log(`[vue-scan] ⏱ PERF ${type}: ${name} (uid: ${uid}) - ${durationStr}ms`)
     },
   })
 
-  if (logToConsole) console.log('[vue-toolkit] Tracking active. Waiting for Vue app to mount...')
+  if (logToConsole) console.log('[vue-scan] Tracking active. Waiting for Vue app to mount...')
 
   return instrumentation
 }

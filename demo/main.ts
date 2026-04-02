@@ -1,8 +1,5 @@
-import { createApp } from 'vue'
-import { startTracking } from '../src/main'
-import App from './App.vue'
+import { createApp } from "vue";
+import "../src/auto";
+import App from "./App.vue";
 
-// Start tracking before mounting
-startTracking()
-
-createApp(App).mount('#app')
+createApp(App).mount("#app");
