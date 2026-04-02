@@ -10,7 +10,7 @@ Vue Scan automatically detects performance issues in your Vue app.
 ### Quick Start
 
 ```js
-import 'vue-scan/auto'
+import '@fdemb1/vue-scan/auto'
 ```
 
 That's it. Open your app and the overlay + toolbar will appear automatically.
@@ -18,7 +18,7 @@ That's it. Open your app and the overlay + toolbar will appear automatically.
 ## Install
 
 ```bash
-npm install vue-scan
+npm install @fdemb1/vue-scan
 ```
 
 > **Note:** Vue 3 is required as a peer dependency. For production builds, set `__VUE_PROD_DEVTOOLS__` to `true` in your bundler config.
@@ -54,7 +54,7 @@ export default defineNuxtConfig({
 Import anywhere in your app to start tracking immediately:
 
 ```js
-import 'vue-scan/auto'
+import '@fdemb1/vue-scan/auto'
 ```
 
 ### Manual Mode
@@ -62,7 +62,7 @@ import 'vue-scan/auto'
 For more control over when and how tracking starts:
 
 ```js
-import { startTracking } from 'vue-scan'
+import { startTracking } from '@fdemb1/vue-scan'
 
 const instrumentation = startTracking({
   overlay: true,
