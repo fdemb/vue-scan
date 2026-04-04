@@ -55,6 +55,7 @@ function shikiPlugin(): Plugin {
 }
 
 export default defineConfig({
+  base: "/vue-scan/",
   plugins: [shikiPlugin(), vue(), tailwindcss()],
   define: {
     // Enable Vue DevTools in production for vue-scan
