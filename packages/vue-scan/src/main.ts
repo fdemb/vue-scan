@@ -14,7 +14,20 @@ export {
 } from "./instrumentation";
 
 export { initOverlay, cleanup as cleanupOverlay, isOverlayActive } from "./overlay";
-export { getComponentNodes, getComponentPath, clearComponentData, type ComponentNode, type ComponentUpdate, type PropChange } from "./component-data";
+export { 
+  getComponentNodes, 
+  getComponentPath, 
+  clearComponentData, 
+  getComponentTree,
+  selectComponent,
+  clearSelection,
+  getSelectedComponent,
+  selectedComponentUid,
+  type ComponentNode, 
+  type ComponentUpdate, 
+  type PropChange,
+  type ComponentTreeNode,
+} from "./component-data";
 
 import { createInstrumentation, isDevToolsAvailable, type PerfType } from "./instrumentation";
 import { initOverlay, outlineComponent } from "./overlay";

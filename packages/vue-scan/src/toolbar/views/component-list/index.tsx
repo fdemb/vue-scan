@@ -1,58 +1,57 @@
 /** @jsxImportSource preact */
-import { useMemo, useState } from 'preact/hooks'
+import { useState } from 'preact/hooks'
 import {
   componentDataRevision,
-  getComponentNodes,
+  treeRevision,
+  selectedComponentUid,
+  getComponentTree,
+  getSelectedComponent,
   getComponentPath,
-  type ComponentNode,
+  selectComponent,
+  clearSelection,
+  type ComponentTreeNode,
   type ComponentUpdate,
   type PropChange,
 } from '../../../component-data'
 
 export function ComponentPanel() {
-  const _rev = componentDataRevision.value
-  const [selectedUid, setSelectedUid] = useState<number | null>(null)
+  // Subscribe to revisions to re-render when tree or selected component updates
+  void treeRevision.value
+  void componentDataRevision.value
+  const selectedUid = selectedComponentUid.value
 
-  const nodes = getComponentNodes()
+  const tree = getComponentTree()
+  const selectedNode = getSelectedComponent()
 
-  const updated = useMemo(
-    () =>
-      nodes
-        .filter((n) => n.totalUpdates > 0)
-        .sort((a, b) => {
-          const aLast = a.updates.at(-1)?.timestamp ?? 0
-          const bLast = b.updates.at(-1)?.timestamp ?? 0
-          return bLast - aLast
-        }),
-    [_rev],
-  )
-
-  const selectedNode = updated.find((n) => n.uid === selectedUid) ?? null
-
-  // Auto-select first if nothing selected
-  if (!selectedNode && updated.length > 0 && selectedUid === null) {
-    setSelectedUid(updated[0].uid)
+  const handleSelect = (uid: number) => {
+    if (uid === selectedUid) {
+      // Clicking same component clears selection
+      clearSelection()
+    } else {
+      selectComponent(uid)
+    }
   }
 
   return (
     <div class="flex h-[360px]">
-      {/* Left: component list */}
+      {/* Left: component tree */}
       <div class="w-[200px] border-r border-white/[0.06] overflow-y-auto shrink-0">
         <div class="px-2 py-1.5 text-[10px] text-neutral-500 uppercase tracking-wider">
-          Components
+          Component Tree
         </div>
-        {updated.length === 0 ? (
+        {tree.length === 0 ? (
           <div class="flex items-center justify-center text-neutral-500 text-xs py-8">
-            No updates yet
+            No components mounted
           </div>
         ) : (
-          <div class="flex flex-col gap-px px-1">
-            {updated.map((node) => (
-              <ComponentListItem
+          <div class="flex flex-col px-1 pb-2">
+            {tree.map((node) => (
+              <TreeNode
                 key={node.uid}
                 node={node}
-                selected={node.uid === selectedUid}
-                onSelect={() => setSelectedUid(node.uid)}
+                selectedUid={selectedUid}
+                onSelect={handleSelect}
+                depth={0}
               />
             ))}
           </div>
@@ -64,9 +63,7 @@ export function ComponentPanel() {
         {selectedNode ? (
           <DetailView node={selectedNode} />
         ) : (
-          <div class="flex items-center justify-center h-full text-neutral-500 text-xs">
-            Select a component
-          </div>
+          <EmptyState />
         )}
       </div>
     </div>
@@ -74,38 +71,95 @@ export function ComponentPanel() {
 }
 
 // ============================================================================
-// Left panel — component list item
+// Left panel — tree node
 // ============================================================================
 
-function ComponentListItem({
+function TreeNode({
   node,
-  selected,
+  selectedUid,
   onSelect,
+  depth,
 }: {
-  node: ComponentNode
-  selected: boolean
-  onSelect: () => void
+  node: ComponentTreeNode
+  selectedUid: number | null
+  onSelect: (uid: number) => void
+  depth: number
 }) {
-  const lastUpdate = node.updates.at(-1)
-  const changeCount = lastUpdate
-    ? lastUpdate.changes.props.length + lastUpdate.changes.state.length
-    : 0
+  const [expanded, setExpanded] = useState(depth < 2) // Auto-expand first 2 levels
+  const isSelected = node.uid === selectedUid
+  const hasChildren = node.hasChildren
 
   return (
-    <button
-      onClick={onSelect}
-      class={`w-full text-left px-2 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${selected ? 'bg-white/10' : 'hover:bg-white/5'}`}
-    >
-      <div class="flex-1 min-w-0 flex items-center gap-1.5">
-        <span class="text-vue-green font-medium truncate">{node.name}</span>
-        <span class="text-neutral-600 text-[10px] shrink-0">×{node.totalUpdates}</span>
-      </div>
-      {changeCount > 0 && (
-        <span class="text-[10px] bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded shrink-0">
-          {changeCount}
+    <div>
+      <button
+        onClick={() => onSelect(node.uid)}
+        class={`w-full text-left px-2 py-1 rounded text-xs flex items-center gap-1 transition-colors cursor-pointer ${
+          isSelected ? 'bg-vue-green/20 text-vue-green' : 'hover:bg-white/5'
+        }`}
+        style={{ paddingLeft: `${8 + depth * 12}px` }}
+      >
+        {/* Expand/collapse toggle */}
+        {hasChildren ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setExpanded(!expanded)
+            }}
+            class="w-4 h-4 flex items-center justify-center hover:bg-white/10 rounded shrink-0"
+          >
+            <svg
+              class={`w-3 h-3 text-neutral-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        ) : (
+          <span class="w-4 shrink-0" />
+        )}
+        
+        <span class={`truncate ${isSelected ? 'text-vue-green' : 'text-neutral-300'}`}>
+          {node.name}
         </span>
+      </button>
+      
+      {/* Children */}
+      {hasChildren && expanded && (
+        <div>
+          {node.children.map((child) => (
+            <TreeNode
+              key={child.uid}
+              node={child}
+              selectedUid={selectedUid}
+              onSelect={onSelect}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
       )}
-    </button>
+    </div>
+  )
+}
+
+// ============================================================================
+// Empty state
+// ============================================================================
+
+function EmptyState() {
+  return (
+    <div class="flex flex-col items-center justify-center h-full text-center px-6">
+      <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
+        <svg class="w-6 h-6 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      </div>
+      <div class="text-sm text-neutral-400 mb-1">Select a component</div>
+      <div class="text-xs text-neutral-600 max-w-[200px]">
+        Choose a component from the tree to start tracking its state changes
+      </div>
+    </div>
   )
 }
 
@@ -113,7 +167,7 @@ function ComponentListItem({
 // Right panel — detail view
 // ============================================================================
 
-function DetailView({ node }: { node: ComponentNode }) {
+function DetailView({ node }: { node: { uid: number; name: string; updates: ComponentUpdate[]; totalUpdates: number } }) {
   const path = getComponentPath(node.uid)
 
   return (
@@ -134,15 +188,29 @@ function DetailView({ node }: { node: ComponentNode }) {
           </div>
         )}
         <div class="text-[10px] text-neutral-500 mt-1">
-          {node.totalUpdates} update{node.totalUpdates !== 1 ? 's' : ''}
+          {node.totalUpdates === 0 ? (
+            <span class="text-neutral-600">Waiting for updates...</span>
+          ) : (
+            <span>{node.totalUpdates} update{node.totalUpdates !== 1 ? 's' : ''} since selection</span>
+          )}
         </div>
       </div>
 
       {/* Update history */}
       <div class="flex-1 overflow-y-auto">
-        {[...node.updates].reverse().map((update: ComponentUpdate, i: number) => (
-          <UpdateEntry key={i} update={update} index={node.totalUpdates - i} />
-        ))}
+        {node.updates.length === 0 ? (
+          <div class="flex flex-col items-center justify-center h-full text-center px-4">
+            <div class="text-xs text-neutral-600">
+              No state changes detected yet.
+              <br />
+              Interact with this component to see updates.
+            </div>
+          </div>
+        ) : (
+          [...node.updates].reverse().map((update: ComponentUpdate, i: number) => (
+            <UpdateEntry key={i} update={update} index={node.totalUpdates - i} />
+          ))
+        )}
       </div>
     </div>
   )
