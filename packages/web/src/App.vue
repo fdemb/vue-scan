@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Header from "./components/Header.vue";
 import InstallCard from "./components/InstallCard.vue";
 import { exampleViteConfigCode } from "./lib/code";
 </script>
@@ -7,8 +8,9 @@ import { exampleViteConfigCode } from "./lib/code";
   <div
     class="flex flex-col mx-auto max-w-[800px] py-24 px-6 sm:px-8 gap-4 text-lg text-neutral-100 text-pretty leading-relaxed"
   >
+    <Header />
     <p>
-      <strong class="font-bold">Vue Scan</strong> is a port of
+      <strong class="font-bold">Vue Scan</strong> is a (lean) port of
       <a
         class="underline underline-offset-2"
         href="https://react-scan.com"
@@ -47,5 +49,9 @@ import { exampleViteConfigCode } from "./lib/code";
     >
       <div v-html="exampleViteConfigCode" />
     </div>
+
+    <p class="text-neutral-300">
+      Work in progress, more features from React Scan coming soon.
+    </p>
   </div>
 </template>
