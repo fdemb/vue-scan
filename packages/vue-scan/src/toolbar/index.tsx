@@ -66,13 +66,14 @@ export function createToolbar(): HTMLDivElement {
   shadow.appendChild(container);
 
   render(
-    <ToolbarErrorBoundary>
-      <Widget />
-    </ToolbarErrorBoundary>,
+    (
+      <ToolbarErrorBoundary>
+        <Widget />
+      </ToolbarErrorBoundary>
+    ),
     container,
   );
 
-  // Double render(null) required for full Preact cleanup — same as react-scan toolbar.tsx:71-73
   const originalRemove = container.remove.bind(container);
   container.remove = () => {
     if (container.hasChildNodes()) {

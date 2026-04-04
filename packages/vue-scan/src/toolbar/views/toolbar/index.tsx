@@ -2,27 +2,21 @@
 import { useEffect, useState } from 'preact/hooks'
 import { isPaused } from '../../state'
 import { getFPS } from '../../../fps'
+import { Switch } from '../../components/switch'
 
 export function Toolbar() {
   return (
-    <div class="flex items-center gap-1.5">
-      <Toggle />
+    <div class="flex items-center gap-2">
+      <Switch checked={!isPaused.value} onChange={() => isPaused.value = !isPaused.value} title={isPaused.value ? 'Resume highlighting' : 'Pause highlighting'} />
+      <Separator />
       <FpsMeter />
     </div>
   )
 }
 
-function Toggle() {
-  const color = isPaused.value ? 'text-gray-400' : 'text-vue-green'
+function Separator() {
   return (
-    <button
-      type="button"
-      title={isPaused.value ? 'Resume outlining' : 'Pause outlining'}
-      onClick={() => { isPaused.value = !isPaused.value }}
-      class={`cursor-pointer p-1 rounded hover:bg-white/10 transition-colors ${color}`}
-    >
-      {isPaused.value ? '⏸' : '▶'}
-    </button>
+    <div class="w-px h-4 bg-neutral-800" />
   )
 }
 
@@ -36,12 +30,15 @@ function FpsMeter() {
 
   const color = fps === null ? 'text-gray-400'
     : fps < 30 ? 'text-red-500'
-    : fps < 50 ? 'text-amber-500'
-    : 'text-vue-green'
+      : fps < 50 ? 'text-amber-500'
+        : 'text-vue-green'
 
   return (
-    <span class={`min-w-[46px] text-right tabular-nums ${color}`}>
-      {fps === null ? '--' : fps} FPS
-    </span>
+    <div class="flex flex-row gap-1 items-center">
+      <span class={`min-w-[3ch] bg-neutral-800 border border-white/10 rounded-md p-1 font-bold leading-none text-right text-sm tabular-nums font-mono ${color}`}>
+        {fps === null ? '--' : fps}
+      </span>
+      <span class="text-neutral-400 text-xs">FPS</span>
+    </div>
   )
 }
