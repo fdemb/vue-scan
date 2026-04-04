@@ -14,10 +14,16 @@ export {
 } from "./instrumentation";
 
 export { initOverlay, cleanup as cleanupOverlay, isOverlayActive } from "./overlay";
+export { getComponentNodes, getComponentPath, clearComponentData, type ComponentNode, type ComponentUpdate, type PropChange } from "./component-data";
 
 import { createInstrumentation, isDevToolsAvailable, type PerfType } from "./instrumentation";
 import { initOverlay, outlineComponent } from "./overlay";
 import { createToolbar } from "./toolbar";
+import {
+  trackComponentAdd,
+  trackComponentRemove,
+  trackComponentUpdate,
+} from "./component-data";
 
 export const VERSION = "0.0.1";
 
@@ -100,9 +106,11 @@ export function startTracking(options: { overlay?: boolean; logToConsole?: boole
   }
 
   const instrumentation = createInstrumentation({
-    onComponentAdd({ instance, uid }) {
+    onComponentAdd({ instance, uid, parentUid }) {
       const name = getComponentName(instance);
       if (logToConsole) console.log(`[vue-scan] + MOUNT: ${name} (uid: ${uid})`);
+
+      trackComponentAdd(uid, name, parentUid, instance.props, (instance as any).devtoolsRawSetupState);
 
       // Add outline for mount
       if (overlay) {
@@ -110,9 +118,17 @@ export function startTracking(options: { overlay?: boolean; logToConsole?: boole
       }
     },
 
-    onComponentUpdate({ instance, uid }) {
+    onComponentUpdate({ instance, uid, parentUid }) {
       const name = getComponentName(instance);
       if (logToConsole) console.log(`[vue-scan] ↻ UPDATE: ${name} (uid: ${uid})`);
+
+      trackComponentUpdate(
+        uid,
+        name,
+        parentUid,
+        instance.props,
+        (instance as any).devtoolsRawSetupState,
+      );
 
       // Add outline for update
       if (overlay) {
@@ -125,6 +141,7 @@ export function startTracking(options: { overlay?: boolean; logToConsole?: boole
       if (logToConsole) console.log(`[vue-scan] - UNMOUNT: ${name} (uid: ${uid})`);
       // Clean up perf data for unmounted components
       componentPerfData.delete(uid);
+      trackComponentRemove(uid);
     },
 
     onPerfStart({ uid, instance, type, time }) {
