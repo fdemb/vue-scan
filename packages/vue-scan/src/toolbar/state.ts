@@ -1,3 +1,9 @@
-import { signal } from '@preact/signals'
+import { effect, signal } from '@preact/signals'
 
-export const isPaused = signal(false)
+const STORAGE_KEY = 'vue-scan:paused'
+
+export const isPaused = signal(localStorage.getItem(STORAGE_KEY) === 'true')
+
+effect(() => {
+  localStorage.setItem(STORAGE_KEY, String(isPaused.value))
+})
