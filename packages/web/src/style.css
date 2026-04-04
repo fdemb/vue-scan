@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans Variable", system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}

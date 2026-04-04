@@ -1,0 +1,59 @@
+{
+  "name": "@fdemb1/vue-scan",
+  "version": "0.0.3",
+  "description": "Performance tracking toolkit for Vue",
+  "type": "module",
+  "main": "./dist/vue-scan.cjs",
+  "module": "./dist/vue-scan.js",
+  "types": "./dist/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/vue-scan.js",
+      "require": "./dist/vue-scan.cjs"
+    },
+    "./auto": {
+      "types": "./dist/auto.d.ts",
+      "import": "./dist/auto.js",
+      "require": "./dist/auto.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && BUILD_TARGET=auto vite build && tsc --emitDeclarationOnly",
+    "build:watch": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "vue",
+    "performance",
+    "devtools"
+  ],
+  "author": "Filip Dembicki",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fdemb/vue-scan"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^25.5.0",
+    "@vitejs/plugin-vue": "^6.0.5",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.8.3",
+    "vite": "^8.0.3",
+    "vue": "^3.5.17"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.9.0",
+    "preact": "^10.29.0"
+  }
+}
